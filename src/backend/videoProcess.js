@@ -17,6 +17,15 @@ exports.convertVideo = (inputFile, outputFile) => {
           return;
         }
         resolve();
+        // Process the standard output (stdout)
+  console.log('FFmpeg command executed successfully');
+  console.log('Output:', stdout);
+
+  // Process the standard error (stderr)
+  if (stderr) {
+    console.error('FFmpeg encountered an error:');
+    console.error(stderr);
+  }
       });
     });
   });
