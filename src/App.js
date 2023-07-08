@@ -42,7 +42,8 @@ function openFile() {
   return (
     <div className="App">
       {/* <input type='file' onChange={handleFileSelect}/> */}
-      <button onClick={openFile}>Press</button>
+      {/* <h1>VidKraft</h1> */}
+      <button onClick={pressed}>Press</button>
     </div>
   );
 }
