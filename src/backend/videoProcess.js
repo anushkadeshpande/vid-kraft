@@ -10,12 +10,14 @@ exports.convertVideo = (inputFile, outputFile) => {
       }
       console.log("Video file accessed")
       const ffmpegCommand = `ffmpeg -i "${inputFile}" -c:v copy -c:a copy "${outputFile}"`;
+      console.log(ffmpegCommand)
       exec(ffmpegCommand, (error, stdout, stderr) => {
         console.log("Executing the command")
         if (error) {
           reject(error);
           return;
         }
+        console.log("FFMPEG Command executed")
         resolve();
         // Process the standard output (stdout)
   console.log('FFmpeg command executed successfully');

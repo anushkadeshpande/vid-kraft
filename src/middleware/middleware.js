@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { convertVideo } = require('../backend/videoProcess')
 
-const inputFile = 'D:\\Projects\\video-editor\\TestVideos\\cycles.mkv';
+// const inputFile = 'D:\\Projects\\video-editor\\TestVideos\\cycles.mkv';
 const outputFile = 'D:\\Projects\\video-editor\\TestVideos\\cycles.mp4';
 
 
