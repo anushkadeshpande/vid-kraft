@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
+import VideoControls from './VideoControls'
 
 const VideoPlayer = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -6,10 +7,16 @@ const VideoPlayer = () => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [videoSrc, setVideoSrc] = useState<string>('')
   const [isPlaying, setIsPlaying] = useState(false)
-  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 })
+  const canvasSize = { width: 1280, height: 720 }
   const [videoSize, setVideoSize] = useState({ width: 640, height: 360, x: 0, y: 0 })
   const animationFrameRef = useRef<number>()
   const isResizingRef = useRef(false)
+  const videoSizeRef = useRef(videoSize)
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    videoSizeRef.current = videoSize
+  }, [videoSize])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -20,34 +27,30 @@ const VideoPlayer = () => {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Adjust canvas size when video metadata loads
+    // Set canvas to fixed size
+    canvas.width = canvasSize.width
+    canvas.height = canvasSize.height
+
+    // Adjust video size when video metadata loads
     const handleLoadedMetadata = () => {
-      const containerWidth = window.innerWidth * 0.9
-      const containerHeight = window.innerHeight * 0.9
-      
-      // Set canvas to fixed size (90% of screen)
-      canvas.width = containerWidth
-      canvas.height = containerHeight
-      setCanvasSize({ width: containerWidth, height: containerHeight })
-      
       // Initialize video size to fit in canvas
       const aspectRatio = video.videoWidth / video.videoHeight
       let videoWidth = video.videoWidth
       let videoHeight = video.videoHeight
       
-      if (videoWidth > containerWidth || videoHeight > containerHeight) {
-        if (videoWidth / containerWidth > videoHeight / containerHeight) {
-          videoWidth = containerWidth
+      if (videoWidth > canvasSize.width || videoHeight > canvasSize.height) {
+        if (videoWidth / canvasSize.width > videoHeight / canvasSize.height) {
+          videoWidth = canvasSize.width
           videoHeight = videoWidth / aspectRatio
         } else {
-          videoHeight = containerHeight
+          videoHeight = canvasSize.height
           videoWidth = videoHeight * aspectRatio
         }
       }
       
       // Center the video
-      const x = (containerWidth - videoWidth) / 2
-      const y = (containerHeight - videoHeight) / 2
+      const x = (canvasSize.width - videoWidth) / 2
+      const y = (canvasSize.height - videoHeight) / 2
       
       setVideoSize({ width: videoWidth, height: videoHeight, x, y })
     }
@@ -58,8 +61,9 @@ const VideoPlayer = () => {
         ctx.fillStyle = '#000'
         ctx.fillRect(0, 0, canvas.width, canvas.height)
         
-        // Draw video at specific position and size
-        ctx.drawImage(video, videoSize.x, videoSize.y, videoSize.width, videoSize.height)
+        // Draw video at specific position and size (use ref for current values)
+        const size = videoSizeRef.current
+        ctx.drawImage(video, size.x, size.y, size.width, size.height)
         animationFrameRef.current = requestAnimationFrame(renderFrame)
       }
     }
@@ -90,7 +94,7 @@ const VideoPlayer = () => {
         cancelAnimationFrame(animationFrameRef.current)
       }
     }
-  }, [videoSrc, videoSize])
+  }, [videoSrc])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -111,19 +115,29 @@ const VideoPlayer = () => {
     }
   }
 
+  const handleStop = () => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0
+      videoRef.current.pause()
+    }
+  }
+
   const handleResize = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     isResizingRef.current = true
     
     const startX = e.clientX
-    // const startY = e.clientY
     const startWidth = videoSize.width
     const startHeight = videoSize.height
     const aspectRatio = startWidth / startHeight
+    
+    const canvas = canvasRef.current
+    const video = videoRef.current
+    const ctx = canvas?.getContext('2d')
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
-      if (!isResizingRef.current) return
+      if (!isResizingRef.current || !ctx || !video || !canvas) return
       
       const deltaX = moveEvent.clientX - startX
       
@@ -152,18 +166,16 @@ const VideoPlayer = () => {
       const x = (canvasSize.width - newWidth) / 2
       const y = (canvasSize.height - newHeight) / 2
       
-      setVideoSize({ width: newWidth, height: newHeight, x, y })
+      // Update ref immediately for smooth rendering
+      videoSizeRef.current = { width: newWidth, height: newHeight, x, y }
       
       // Redraw current frame
-      const canvas = canvasRef.current
-      const video = videoRef.current
-      const ctx = canvas?.getContext('2d')
+      ctx.fillStyle = '#000'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.drawImage(video, x, y, newWidth, newHeight)
       
-      if (ctx && video && canvas) {
-        ctx.fillStyle = '#000'
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
-        ctx.drawImage(video, x, y, newWidth, newHeight)
-      }
+      // Update state for UI (resize handle position)
+      setVideoSize({ width: newWidth, height: newHeight, x, y })
     }
 
     const handleMouseUp = () => {
@@ -246,25 +258,12 @@ const VideoPlayer = () => {
         />
       </div>
 
-      {videoSrc && (
-        <div style={{ 
-          display: 'flex', 
-          gap: '10px', 
-          justifyContent: 'center' 
-        }}>
-          <button onClick={togglePlayPause}>
-            {isPlaying ? 'Pause' : 'Play'}
-          </button>
-          <button onClick={() => {
-            if (videoRef.current) {
-              videoRef.current.currentTime = 0
-              videoRef.current.pause()
-            }
-          }}>
-            Stop
-          </button>
-        </div>
-      )}
+      <VideoControls 
+        isPlaying={isPlaying}
+        hasVideo={!!videoSrc}
+        onPlayPause={togglePlayPause}
+        onStop={handleStop}
+      />
     </div>
   )
 }
