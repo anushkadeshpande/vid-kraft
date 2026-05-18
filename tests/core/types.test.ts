@@ -11,7 +11,7 @@ import type {
   PlaybackState,
   SelectionState,
   Point,
-} from './types'
+} from '../../src/core/types'
 
 describe('Core Types', () => {
   describe('TimeRange', () => {

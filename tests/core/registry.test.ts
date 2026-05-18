@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { operationRegistry, OperationDefinition } from './registry'
-import { Command } from './commands'
+import { operationRegistry, OperationDefinition } from '../../src/core/registry'
+import { Command } from '../../src/core/commands'
 
 class MockCommand implements Command {
   description = 'mock'

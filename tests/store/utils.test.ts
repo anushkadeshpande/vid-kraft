@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { v4 } from './utils'
+import { v4 } from '../../src/store/utils'
 
 describe('Utils', () => {
   describe('v4 (UUID generator)', () => {

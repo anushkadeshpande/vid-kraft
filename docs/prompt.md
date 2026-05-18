@@ -159,7 +159,7 @@ electron/
 9. **Unit tests are mandatory for every module.** Every new file in `src/core/`, `src/store/`, and `src/services/` must have a corresponding `.test.ts` file.
 10. **Tests must pass before pushing.** Run `npm test` and ensure zero failures before committing.
 11. **Aim for maximum coverage.** Test all public functions, edge cases, error paths, and state transitions. Target >90% coverage on core/store/services.
-12. **Test naming convention:** Place test files adjacent to the module they test (e.g., `commands.ts` → `commands.test.ts`).
+12. **Test naming convention:** Place test files in `tests/` mirroring the `src/` structure (e.g., `src/core/commands.ts` → `tests/core/commands.test.ts`).
 13. **Mock external dependencies** (IPC, FFmpeg, file system) — never make real system calls in tests.
 
 ---

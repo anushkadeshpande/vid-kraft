@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { Command, CommandHistory } from './commands'
+import { Command, CommandHistory } from '../../src/core/commands'
 
 /** A simple test command for incrementing/decrementing a counter */
 class IncrementCommand implements Command {

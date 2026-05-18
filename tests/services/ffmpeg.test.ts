@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { probeFile, generateThumbnail, exportProject } from './ffmpeg'
+import { probeFile, generateThumbnail, exportProject } from '../../src/services/ffmpeg'
 
 // Mock window.ipcRenderer
 const mockInvoke = vi.fn()

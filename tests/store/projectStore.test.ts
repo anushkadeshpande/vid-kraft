@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useProjectStore } from './projectStore'
-import type { Track, Clip, MediaAsset, Annotation } from '../core/types'
+import { useProjectStore } from '../../src/store/projectStore'
+import type { Track, Clip, MediaAsset, Annotation } from '../../src/core/types'
 
 describe('ProjectStore', () => {
   beforeEach(() => {
