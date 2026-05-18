@@ -156,6 +156,29 @@ electron/
 6. **IPC calls** must be typed end-to-end (shared type definitions between main and renderer).
 7. **No network calls** — validate that no dependency phones home.
 8. **Test each feature** by running the app before marking complete.
+9. **Unit tests are mandatory for every module.** Every new file in `src/core/`, `src/store/`, and `src/services/` must have a corresponding `.test.ts` file.
+10. **Tests must pass before pushing.** Run `npm test` and ensure zero failures before committing.
+11. **Aim for maximum coverage.** Test all public functions, edge cases, error paths, and state transitions. Target >90% coverage on core/store/services.
+12. **Test naming convention:** Place test files adjacent to the module they test (e.g., `commands.ts` → `commands.test.ts`).
+13. **Mock external dependencies** (IPC, FFmpeg, file system) — never make real system calls in tests.
+
+---
+
+## Testing Setup
+
+- **Framework:** Vitest (Vite-native, fast, compatible with Jest API)
+- **Environment:** jsdom (for React components)
+- **Config:** `vitest.config.ts` at project root
+- **Commands:**
+  - `npm test` — Run all tests once
+  - `npm run test:watch` — Run tests in watch mode during development
+  - `npm run test:coverage` — Run with coverage report
+- **Coverage scope:** `src/core/**`, `src/store/**`, `src/services/**`
+- **Patterns:**
+  - Use `describe`/`it` blocks with clear descriptions
+  - Use `beforeEach` to reset state (especially Zustand stores)
+  - Mock `window.ipcRenderer` for service tests
+  - Use concrete test commands (implementing `Command` interface) for command system tests
 
 ---
 
@@ -164,7 +187,9 @@ electron/
 1. Read this prompt and the CHANGELOG.md to understand current state.
 2. Identify the next incomplete phase/task from CHANGELOG.md.
 3. Implement the task following the architecture above.
-4. Test by running `npm run dev`.
-5. Update CHANGELOG.md with what was done.
-6. Commit with a descriptive message and push.
-7. Move to the next task.
+4. Write unit tests for the new code (adjacent `.test.ts` files).
+5. Run `npm test` and ensure all tests pass.
+6. Test by running `npm run dev` to verify the app works.
+7. Update CHANGELOG.md with what was done.
+8. Commit with a descriptive message and push.
+9. Move to the next task.

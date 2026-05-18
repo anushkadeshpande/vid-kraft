@@ -14,6 +14,14 @@ Format: `[Phase.Task] - Description (Date)`
 - [0.2] - Play/Pause/Stop controls (Pre-existing)
 - [0.3] - Single file import and video resize handle on canvas (Pre-existing)
 
+### Phase 1: Foundation & Architecture
+- [1.1] - Defined core types in `src/core/types.ts`: Project, Track, Clip, MediaAsset, Annotation, Viewport, TimeRange, Transform, PlaybackState, SelectionState (2026-05-18)
+- [1.2] - Set up FFmpeg integration: installed `fluent-ffmpeg` + `@ffmpeg-installer/ffmpeg`, created `electron/ipc/ffmpeg.ts` (probe, thumbnail, export handlers) and `src/services/ffmpeg.ts` (renderer client) (2026-05-18)
+- [1.3] - Set up Zustand state management in `src/store/projectStore.ts` with actions for tracks, clips, assets, annotations, playback, and selection (2026-05-18)
+- [1.4] - Implemented Command pattern in `src/core/commands.ts` with `Command` interface, `CommandHistory` class (undo/redo stack), singleton instance (2026-05-18)
+- [1.5] - Created operation registry in `src/core/registry.ts` — plugin system for self-registering operations (2026-05-18)
+- [1.6] - Set up modular IPC architecture: `electron/ipc/` with ffmpeg + file handlers, updated main.ts to register handlers, updated preload with typed `window.api`, added type declarations (2026-05-18)
+
 ---
 
 ## In Progress
@@ -23,14 +31,6 @@ _Nothing currently in progress._
 ---
 
 ## Pending
-
-### Phase 1: Foundation & Architecture
-- [ ] 1.1 — Define core types (`src/core/types.ts`)
-- [ ] 1.2 — Set up FFmpeg integration (install + IPC wrapper)
-- [ ] 1.3 — Set up state management (Zustand store)
-- [ ] 1.4 — Implement Command pattern for undo/redo
-- [ ] 1.5 — Create operation registry
-- [ ] 1.6 — Set up modular IPC architecture
 
 ### Phase 2: Media Import & Management
 - [ ] 2.1 — Multi-file import (videos, photos, audio)
