@@ -24,4 +24,31 @@ declare namespace NodeJS {
 // Used in Renderer process, expose in `preload.ts`
 interface Window {
   ipcRenderer: import('electron').IpcRenderer
+  api: {
+    ffmpeg: {
+      probe: (filePath: string) => Promise<{
+        duration: number
+        width?: number
+        height?: number
+        codec?: string
+        sampleRate?: number
+        channels?: number
+        fileSize: number
+      }>
+      thumbnail: (filePath: string, outputDir: string, timestamp?: string) => Promise<string>
+      export: (options: unknown) => Promise<string>
+    }
+    file: {
+      openDialog: (options?: {
+        title?: string
+        filters?: { name: string; extensions: string[] }[]
+        multiple?: boolean
+      }) => Promise<{ canceled: boolean; filePaths: string[] }>
+      saveDialog: (options?: {
+        title?: string
+        defaultPath?: string
+        filters?: { name: string; extensions: string[] }[]
+      }) => Promise<{ canceled: boolean; filePath: string }>
+    }
+  }
 }

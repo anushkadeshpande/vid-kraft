@@ -3,6 +3,22 @@ import { contextBridge, ipcRenderer } from 'electron'
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', withPrototype(ipcRenderer))
 
+// Expose typed API for application-specific IPC
+contextBridge.exposeInMainWorld('api', {
+  // FFmpeg operations
+  ffmpeg: {
+    probe: (filePath: string) => ipcRenderer.invoke('ffmpeg:probe', filePath),
+    thumbnail: (filePath: string, outputDir: string, timestamp?: string) =>
+      ipcRenderer.invoke('ffmpeg:thumbnail', filePath, outputDir, timestamp),
+    export: (options: unknown) => ipcRenderer.invoke('ffmpeg:export', options),
+  },
+  // File operations
+  file: {
+    openDialog: (options?: unknown) => ipcRenderer.invoke('file:openDialog', options),
+    saveDialog: (options?: unknown) => ipcRenderer.invoke('file:saveDialog', options),
+  },
+})
+
 // `exposeInMainWorld` can't detect attributes and methods of `prototype`, manually patching it.
 function withPrototype(obj: Record<string, any>) {
   const protos = Object.getPrototypeOf(obj)
