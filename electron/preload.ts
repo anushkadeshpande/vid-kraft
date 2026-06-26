@@ -17,6 +17,10 @@ contextBridge.exposeInMainWorld('api', {
     openDialog: (options?: unknown) => ipcRenderer.invoke('file:openDialog', options),
     saveDialog: (options?: unknown) => ipcRenderer.invoke('file:saveDialog', options),
   },
+  // App / OS path helpers
+  app: {
+    getThumbnailDir: () => ipcRenderer.invoke('app:getThumbnailDir'),
+  },
 })
 
 // `exposeInMainWorld` can't detect attributes and methods of `prototype`, manually patching it.

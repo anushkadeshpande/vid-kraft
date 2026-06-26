@@ -49,7 +49,14 @@ dist-electron/     → Compiled Electron JS (main.js, preload.js)
 
 ### `App.tsx` — Root Component
 
-- Simple wrapper that renders `<VideoPlayer />`.
+- Two-pane layout: a `MediaBin` sidebar (imported assets) on the left and the `VideoPlayer` preview on the right.
+
+### `components/MediaBin/` — Media Library (Phase 2)
+
+- `MediaBin.tsx` renders imported `MediaAsset`s as cards with thumbnail, name, type, duration, resolution; supports selection, per-asset removal (via store `removeAsset`), and a grid/list view toggle.
+- `AssetCard.tsx` renders a single asset; images show their own thumbnail, audio shows a placeholder icon.
+- `format.ts` holds pure helpers (`formatDuration`, `formatFileSize`, `formatResolution`, `toFileUrl`).
+- Import is driven by `src/services/mediaImport.ts` (per-`MediaType` handler registry: classify → probe → thumbnail → build `MediaAsset`, skipping invalid files) and the `useMediaImport` hook, which opens the native dialog and adds assets to the store. Thumbnails are written to `userData/thumbnails` (resolved via the `app:getThumbnailDir` IPC handler).
 
 ### `components/VideoPlayer.tsx` — Core Component
 

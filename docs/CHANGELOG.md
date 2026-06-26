@@ -22,6 +22,11 @@ Format: `[Phase.Task] - Description (Date)`
 - [1.5] - Created operation registry in `src/core/registry.ts` — plugin system for self-registering operations (2026-05-18)
 - [1.6] - Set up modular IPC architecture: `electron/ipc/` with ffmpeg + file handlers, updated main.ts to register handlers, updated preload with typed `window.api`, added type declarations (2026-05-18)
 
+### Phase 2: Media Import & Management
+- [2.1] - Multi-file import via `src/services/mediaImport.ts`: native file dialog, per-`MediaType` handler registry (classify/probe/thumbnail), `importFiles` skips invalid files per item; added `useMediaImport` hook and `app:getThumbnailDir` IPC handler (2026-06-27)
+- [2.2] - Media Bin UI in `src/components/MediaBin/`: asset cards with thumbnail/name/type/duration/resolution, selection, per-asset removal, grid/list toggle; wired into `App.tsx` two-pane layout (2026-06-27)
+- [2.3] - Thumbnail generation: video poster frame via FFmpeg, image self-thumbnail, audio placeholder; stored in OS `userData/thumbnails` (2026-06-27)
+
 ---
 
 ## In Progress
@@ -31,11 +36,6 @@ _Nothing currently in progress._
 ---
 
 ## Pending
-
-### Phase 2: Media Import & Management
-- [ ] 2.1 — Multi-file import (videos, photos, audio)
-- [ ] 2.2 — Media Bin UI panel
-- [ ] 2.3 — Thumbnail generation
 
 ### Phase 3: Timeline & Tracks
 - [ ] 3.1 — Timeline component (ruler, playhead, scroll)

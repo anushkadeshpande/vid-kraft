@@ -50,5 +50,8 @@ interface Window {
         filters?: { name: string; extensions: string[] }[]
       }) => Promise<{ canceled: boolean; filePath: string }>
     }
+    app: {
+      getThumbnailDir: () => Promise<string>
+    }
   }
 }

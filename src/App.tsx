@@ -1,11 +1,17 @@
 import './App.css'
 import VideoPlayer from './components/VideoPlayer'
+import { MediaBin } from './components/MediaBin'
 
 function App() {
 
   return (
     <div className="app">
-      <VideoPlayer />
+      <aside className="app__sidebar">
+        <MediaBin />
+      </aside>
+      <main className="app__main">
+        <VideoPlayer />
+      </main>
     </div>
   )
 }

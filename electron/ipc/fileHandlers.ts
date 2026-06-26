@@ -1,7 +1,18 @@
-import { ipcMain, dialog, BrowserWindow } from 'electron'
+import { ipcMain, dialog, BrowserWindow, app } from 'electron'
+import { existsSync, mkdirSync } from 'node:fs'
+import path from 'node:path'
 
 /** Register all file-system-related IPC handlers */
 export function registerFileHandlers() {
+  // Resolve (and lazily create) the OS-managed directory for generated thumbnails
+  ipcMain.handle('app:getThumbnailDir', async (): Promise<string> => {
+    const dir = path.join(app.getPath('userData'), 'thumbnails')
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true })
+    }
+    return dir
+  })
+
   // Open file dialog for importing media
   ipcMain.handle('file:openDialog', async (_event, options?: {
     title?: string
