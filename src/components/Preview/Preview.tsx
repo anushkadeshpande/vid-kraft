@@ -72,11 +72,30 @@ function Preview() {
 
     const playing = state.playback.isPlaying
     const layers = resolveVisibleLayers(state.project.tracks, time)
+    const visibleVideoIds = new Set<Id>()
     for (const layer of layers) {
       const el = elements.current.get(layer.clip.assetId)
       if (!el) continue
-      if (el instanceof HTMLVideoElement && !playing) {
-        if (Math.abs(el.currentTime - layer.sourceTime) > 0.05) {
+      if (el instanceof HTMLVideoElement) {
+        if (playing) {
+          // Start (or resync) any video that becomes visible mid-playback so
+          // the next clip in a sequence actually plays instead of staying paused.
+          visibleVideoIds.add(layer.clip.assetId)
+          if (el.paused) {
+            try {
+              el.currentTime = layer.sourceTime
+            } catch {
+              /* seeking before metadata is ready — ignored */
+            }
+            void el.play().catch(() => undefined)
+          } else if (Math.abs(el.currentTime - layer.sourceTime) > 0.3) {
+            try {
+              el.currentTime = layer.sourceTime
+            } catch {
+              /* ignored */
+            }
+          }
+        } else if (Math.abs(el.currentTime - layer.sourceTime) > 0.05) {
           try {
             el.currentTime = layer.sourceTime
           } catch {
@@ -85,6 +104,14 @@ function Preview() {
         }
       }
       drawLayer(ctx, el, layer.clip.transform, vp)
+    }
+    // Pause videos that are no longer visible (e.g. after the playhead leaves a clip).
+    if (playing) {
+      for (const [id, el] of elements.current) {
+        if (el instanceof HTMLVideoElement && !visibleVideoIds.has(id) && !el.paused) {
+          el.pause()
+        }
+      }
     }
   }, [])
 
