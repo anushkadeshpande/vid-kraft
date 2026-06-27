@@ -4,11 +4,15 @@ import { toFileUrl } from '../MediaBin/format'
 /** A canvas-drawable source for a visual asset. */
 export type DrawableElement = HTMLVideoElement | HTMLImageElement
 
+/** Any pooled preview element: drawable (video/image) or audio-only. */
+export type PreviewElement = DrawableElement | HTMLAudioElement
+
 /**
- * Create a hidden, decoded element for a visual asset (video or image).
- * Audio assets have no visual representation and return null.
+ * Create a hidden, decoded element for an asset. Video and image assets return
+ * a drawable element; audio assets return an `<audio>` element (played but not
+ * drawn). Unknown types return null.
  */
-export function createElementForAsset(asset: MediaAsset): DrawableElement | null {
+export function createElementForAsset(asset: MediaAsset): PreviewElement | null {
   if (asset.type === 'video') {
     const video = document.createElement('video')
     video.src = toFileUrl(asset.path)
@@ -21,6 +25,12 @@ export function createElementForAsset(asset: MediaAsset): DrawableElement | null
     const img = new Image()
     img.src = toFileUrl(asset.path)
     return img
+  }
+  if (asset.type === 'audio') {
+    const audio = document.createElement('audio')
+    audio.src = toFileUrl(asset.path)
+    audio.preload = 'auto'
+    return audio
   }
   return null
 }

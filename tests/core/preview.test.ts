@@ -4,6 +4,7 @@ import {
   resolveClipAtTime,
   orderTracksForDraw,
   resolveVisibleLayers,
+  resolveAudibleLayers,
   fitToViewport,
   projectDuration,
   matchViewportPreset,
@@ -102,6 +103,30 @@ describe('preview compositing helpers', () => {
     it('contributes nothing for tracks with a gap at the time', () => {
       const t = makeTrack({ clips: [makeClip({ startTime: 0, duration: 2 })] })
       expect(resolveVisibleLayers([t], 5)).toEqual([])
+    })
+  })
+
+  describe('resolveAudibleLayers', () => {
+    it('excludes muted tracks but includes hidden unmuted tracks', () => {
+      const audible = makeTrack({ id: 'a', visible: false, clips: [makeClip({ id: 'c1' })] })
+      const muted = makeTrack({ id: 'm', muted: true, clips: [makeClip({ id: 'c2' })] })
+      const layers = resolveAudibleLayers([audible, muted], 1)
+      expect(layers.map((l) => l.clip.id)).toEqual(['c1'])
+    })
+
+    it('resolves the source time of the active clip', () => {
+      const track = makeTrack({
+        type: 'audio',
+        clips: [makeClip({ id: 'c', startTime: 2, duration: 4, trimStart: 1 })],
+      })
+      const layers = resolveAudibleLayers([track], 3)
+      expect(layers).toHaveLength(1)
+      expect(layers[0].sourceTime).toBe(2)
+    })
+
+    it('returns nothing during a gap', () => {
+      const t = makeTrack({ type: 'audio', clips: [makeClip({ startTime: 0, duration: 2 })] })
+      expect(resolveAudibleLayers([t], 5)).toEqual([])
     })
   })
 

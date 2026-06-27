@@ -4,12 +4,14 @@ import type { Id, Viewport } from '../../core/types'
 import {
   fitToViewport,
   projectDuration,
+  resolveAudibleLayers,
   resolveVisibleLayers,
 } from '../../core/preview'
+import { clampVolume } from '../../core/audioMix'
 import { formatDuration } from '../MediaBin/format'
 import VideoControls from '../VideoControls'
 import ViewportSelector from './ViewportSelector'
-import { createElementForAsset, drawLayer, type DrawableElement } from './assetElements'
+import { createElementForAsset, drawLayer, type PreviewElement } from './assetElements'
 import './Preview.css'
 
 function formatTimecode(seconds: number): string {
@@ -34,7 +36,7 @@ function Preview() {
   const stageRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const poolRef = useRef<HTMLDivElement | null>(null)
-  const elements = useRef<Map<Id, DrawableElement>>(new Map())
+  const elements = useRef<Map<Id, PreviewElement>>(new Map())
   const [available, setAvailable] = useState({ width: 0, height: 0 })
 
   const duration = projectDuration(tracks)
@@ -71,16 +73,19 @@ function Preview() {
     ctx.fillRect(0, 0, vp.width, vp.height)
 
     const playing = state.playback.isPlaying
-    const layers = resolveVisibleLayers(state.project.tracks, time)
-    const visibleVideoIds = new Set<Id>()
+    const allTracks = state.project.tracks
+
+    // ---- Visual layers: draw video/image, and play video so frames advance ----
+    const layers = resolveVisibleLayers(allTracks, time)
+    const activeVideoIds = new Set<Id>()
     for (const layer of layers) {
       const el = elements.current.get(layer.clip.assetId)
       if (!el) continue
       if (el instanceof HTMLVideoElement) {
+        el.muted = layer.track.muted
+        el.volume = clampVolume(layer.clip.volume)
         if (playing) {
-          // Start (or resync) any video that becomes visible mid-playback so
-          // the next clip in a sequence actually plays instead of staying paused.
-          visibleVideoIds.add(layer.clip.assetId)
+          activeVideoIds.add(layer.clip.assetId)
           if (el.paused) {
             try {
               el.currentTime = layer.sourceTime
@@ -102,13 +107,45 @@ function Preview() {
             /* seeking before metadata is ready — ignored */
           }
         }
+        drawLayer(ctx, el, layer.clip.transform, vp)
+      } else if (el instanceof HTMLImageElement) {
+        drawLayer(ctx, el, layer.clip.transform, vp)
       }
-      drawLayer(ctx, el, layer.clip.transform, vp)
     }
-    // Pause videos that are no longer visible (e.g. after the playhead leaves a clip).
     if (playing) {
       for (const [id, el] of elements.current) {
-        if (el instanceof HTMLVideoElement && !visibleVideoIds.has(id) && !el.paused) {
+        if (el instanceof HTMLVideoElement && !activeVideoIds.has(id) && !el.paused) {
+          el.pause()
+        }
+      }
+    }
+
+    // ---- Audio layers: play audio-only assets on unmuted tracks ----
+    if (playing) {
+      const audible = resolveAudibleLayers(allTracks, time)
+      const activeAudioIds = new Set<Id>()
+      for (const layer of audible) {
+        const el = elements.current.get(layer.clip.assetId)
+        if (!(el instanceof HTMLAudioElement)) continue
+        activeAudioIds.add(layer.clip.assetId)
+        el.volume = clampVolume(layer.clip.volume)
+        if (el.paused) {
+          try {
+            el.currentTime = layer.sourceTime
+          } catch {
+            /* ignored */
+          }
+          void el.play().catch(() => undefined)
+        } else if (Math.abs(el.currentTime - layer.sourceTime) > 0.3) {
+          try {
+            el.currentTime = layer.sourceTime
+          } catch {
+            /* ignored */
+          }
+        }
+      }
+      for (const [id, el] of elements.current) {
+        if (el instanceof HTMLAudioElement && !activeAudioIds.has(id) && !el.paused) {
           el.pause()
         }
       }
@@ -125,15 +162,15 @@ function Preview() {
         const el = createElementForAsset(asset)
         if (el) {
           cache.set(asset.id, el)
-          // Video elements must be in the DOM to decode/advance during playback.
-          if (el instanceof HTMLVideoElement && pool) pool.appendChild(el)
+          // Media elements must be in the DOM to decode/advance during playback.
+          if (el instanceof HTMLMediaElement && pool) pool.appendChild(el)
         }
       }
     }
     for (const id of [...cache.keys()]) {
       if (!ids.has(id)) {
         const el = cache.get(id)
-        if (el instanceof HTMLVideoElement) el.remove()
+        if (el instanceof HTMLMediaElement) el.remove()
         cache.delete(id)
       }
     }
@@ -181,20 +218,10 @@ function Preview() {
       return
     }
 
-    // Sync and start the videos that are visible at the current time.
+    // Kick off playback: drawAt starts/syncs the visible videos and audible
+    // audio for the current time; the loop keeps them in sync each frame.
     const cache = elements.current
-    const startLayers = resolveVisibleLayers(tracks, useProjectStore.getState().playback.currentTime)
-    for (const layer of startLayers) {
-      const el = cache.get(layer.clip.assetId)
-      if (el instanceof HTMLVideoElement) {
-        try {
-          el.currentTime = layer.sourceTime
-        } catch {
-          /* ignored */
-        }
-        void el.play().catch(() => undefined)
-      }
-    }
+    drawAt(useProjectStore.getState().playback.currentTime)
 
     let raf = 0
     let last = performance.now()
@@ -220,7 +247,7 @@ function Preview() {
     return () => {
       cancelAnimationFrame(raf)
       for (const el of cache.values()) {
-        if (el instanceof HTMLVideoElement) el.pause()
+        if (el instanceof HTMLMediaElement) el.pause()
       }
     }
   }, [isPlaying, duration, tracks, setPlaying, drawAt])

@@ -59,6 +59,23 @@ export function resolveVisibleLayers(tracks: Track[], time: number): VisibleLaye
   return layers
 }
 
+/**
+ * The active clip on each unmuted track at `time`. Drives preview audio:
+ * visibility controls drawing, muting controls sound, so audio uses a separate
+ * resolution from {@link resolveVisibleLayers}.
+ */
+export function resolveAudibleLayers(tracks: Track[], time: number): VisibleLayer[] {
+  const layers: VisibleLayer[] = []
+  for (const track of tracks) {
+    if (track.muted) continue
+    const resolved = resolveClipAtTime(track, time)
+    if (resolved) {
+      layers.push({ track, clip: resolved.clip, sourceTime: resolved.sourceTime })
+    }
+  }
+  return layers
+}
+
 export interface Fit {
   scale: number
   width: number
