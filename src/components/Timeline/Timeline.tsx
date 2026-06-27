@@ -52,6 +52,7 @@ function Timeline() {
   const assets = useProjectStore((s) => s.project.assets)
   const currentTime = useProjectStore((s) => s.playback.currentTime)
   const selectedClipIds = useProjectStore((s) => s.selection.selectedClipIds)
+  const viewport = useProjectStore((s) => s.project.viewport)
 
   const addTrack = useProjectStore((s) => s.addTrack)
   const removeTrack = useProjectStore((s) => s.removeTrack)
@@ -120,7 +121,7 @@ function Timeline() {
     const candidates = collectCandidates(null)
     const threshold = SNAP_THRESHOLD_PX / pxPerSecond
     const start = snap(time, candidates, threshold)
-    const clip = createClipFromAsset(asset, trackId, start)
+    const clip = createClipFromAsset(asset, trackId, start, viewport)
     addClip(trackId, clip)
     setSelectedClips([clip.id])
   }

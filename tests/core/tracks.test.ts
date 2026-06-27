@@ -8,6 +8,7 @@ import {
   createTrack,
   clipDurationForAsset,
   createClipFromAsset,
+  containRect,
 } from '../../src/core/tracks'
 
 function makeAsset(overrides: Partial<MediaAsset> = {}): MediaAsset {
@@ -107,6 +108,49 @@ describe('track helpers', () => {
     it('clamps negative start times to 0', () => {
       const clip = createClipFromAsset(makeAsset(), 'track-1', -5)
       expect(clip.startTime).toBe(0)
+    })
+
+    it('fits the clip into the viewport preserving aspect ratio when given a viewport', () => {
+      // Portrait source into a landscape viewport -> pillarboxed and centered.
+      const asset = makeAsset({ width: 1080, height: 1920 })
+      const clip = createClipFromAsset(asset, 'track-1', 0, { width: 1920, height: 1080 })
+      expect(clip.transform).toMatchObject({ width: 607.5, height: 1080, y: 0 })
+      expect(clip.transform.x).toBeCloseTo((1920 - 607.5) / 2)
+    })
+  })
+
+  describe('containRect', () => {
+    it('pillarboxes a portrait source in a landscape viewport', () => {
+      const rect = containRect(1080, 1920, { width: 1920, height: 1080 })
+      expect(rect.height).toBe(1080)
+      expect(rect.width).toBeCloseTo(607.5)
+      expect(rect.x).toBeCloseTo((1920 - 607.5) / 2)
+      expect(rect.y).toBe(0)
+    })
+
+    it('letterboxes a landscape source in a square viewport', () => {
+      const rect = containRect(1920, 1080, { width: 1080, height: 1080 })
+      expect(rect.width).toBe(1080)
+      expect(rect.height).toBeCloseTo(607.5)
+      expect(rect.y).toBeCloseTo((1080 - 607.5) / 2)
+    })
+
+    it('fills the viewport for an exact aspect match', () => {
+      expect(containRect(1920, 1080, { width: 1920, height: 1080 })).toEqual({
+        x: 0,
+        y: 0,
+        width: 1920,
+        height: 1080,
+      })
+    })
+
+    it('falls back to filling the viewport when content has no size', () => {
+      expect(containRect(0, 0, { width: 1280, height: 720 })).toEqual({
+        x: 0,
+        y: 0,
+        width: 1280,
+        height: 720,
+      })
     })
   })
 })
