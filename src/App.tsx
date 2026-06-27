@@ -1,6 +1,6 @@
 import './App.css'
-import VideoPlayer from './components/VideoPlayer'
 import { MediaBin } from './components/MediaBin'
+import { Preview } from './components/Preview'
 import { Timeline } from './components/Timeline'
 
 function App() {
@@ -12,7 +12,7 @@ function App() {
           <MediaBin />
         </aside>
         <main className="app__main">
-          <VideoPlayer />
+          <Preview />
         </main>
       </div>
       <section className="app__timeline">

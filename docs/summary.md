@@ -11,7 +11,7 @@ Vid Kraft is a desktop video editor built with **Electron + React + TypeScript**
 ```
 electron/          → Electron main process + preload bridge
 src/               → React UI (rendered in Electron's BrowserWindow)
-  components/      → VideoPlayer, VideoControls
+  components/      → MediaBin, Timeline, Preview, VideoControls
 public/            → Static assets (icons)
 dist-electron/     → Compiled Electron JS (main.js, preload.js)
 ```
@@ -49,7 +49,7 @@ dist-electron/     → Compiled Electron JS (main.js, preload.js)
 
 ### `App.tsx` — Root Component
 
-- Three-region layout: a top row with a `MediaBin` sidebar (imported assets) on the left and the `VideoPlayer` preview on the right, plus a `Timeline` panel docked along the bottom.
+- Three-region layout: a top row with a `MediaBin` sidebar (imported assets) on the left and the `Preview` compositor on the right, plus a `Timeline` panel docked along the bottom.
 
 ### `components/MediaBin/` — Media Library (Phase 2)
 
@@ -65,24 +65,19 @@ dist-electron/     → Compiled Electron JS (main.js, preload.js)
 - `TrackLane.tsx` accepts asset drops on compatible, unlocked tracks and renders its clips; `ClipView.tsx` positions a clip by `startTime`/`duration`.
 - Pure, unit-tested logic lives in `src/core/timeline.ts` (`timeToPixels`, `pixelsToTime`, `snap`, `snapClipStart`, `rulerTickInterval`) and `src/core/tracks.ts` (media↔track compatibility registry, `createTrack`, `createClipFromAsset`). Locked tracks reject drops and clip moves; Shift disables snapping during a drag.
 
-### `components/VideoPlayer.tsx` — Core Component
+### `components/Preview/` — Preview & Viewport (Phase 4)
 
-This is the main feature of the app. It:
+`Preview.tsx` is the live compositor that replaced the old single-file `VideoPlayer`. It:
 
-1. **File selection** — An `<input type="file" accept="video/*">` lets the user pick a local video. The file is turned into a blob URL via `URL.createObjectURL`.
+1. **Composites visible tracks at the playhead** — for the current `currentTime`, it resolves the visible clip on each visible track and draws them onto a `<canvas>` in z-order (base tracks first, overlay tracks on top), honoring each clip's `Transform` (position, scale, rotation, opacity).
 
-2. **Canvas rendering** — A hidden `<video>` element is the source; frames are drawn onto a `1280×720` `<canvas>` using `requestAnimationFrame`. The canvas acts as the compositing surface (like a timeline preview).
+2. **Configurable viewport** — `ViewportSelector.tsx` offers presets (1080p, 720p, 9:16, 1:1) that call `setViewport`; the canvas is fit to the available area preserving aspect ratio (letterbox/pillarbox), and the backing store is sized to `devicePixelRatio`.
 
-3. **Auto-fitting** — On `loadedmetadata`, the video is scaled to fit within the canvas bounds while preserving aspect ratio, then centered.
+3. **Playback** — a `requestAnimationFrame` loop advances `currentTime` and plays the visible `<video>` elements; while paused/scrubbing it seeks them to the clip's source time. Reuses the existing `VideoControls` (Play/Pause/Stop) wired to playback state.
 
-4. **Resize handle** — A draggable handle in the bottom-right corner of the video allows the user to resize the video on the canvas. It:
-   - Tracks mouse movement to compute new dimensions.
-   - Maintains aspect ratio.
-   - Enforces min (160px wide) and max (canvas bounds) constraints.
-   - Redraws the current frame in real-time during the drag.
-   - Re-centers the video after resize.
+4. **Asset elements** — `assetElements.ts` caches a hidden `<video>`/`<img>` per visual asset and exposes the pure `drawLayer` transform-application helper.
 
-5. **Playback loop** — When the video plays, `renderFrame()` continuously draws frames via `requestAnimationFrame`. On pause/end, the loop is cancelled.
+The spec-critical math is pure and unit-tested in `src/core/preview.ts`: `resolveClipAtTime`, `orderTracksForDraw`, `resolveVisibleLayers`, `fitToViewport`, `projectDuration`, and the `VIEWPORT_PRESETS`.
 
 ### `components/VideoControls.tsx` — Playback Buttons
 

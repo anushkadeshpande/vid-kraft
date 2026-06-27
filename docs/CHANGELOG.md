@@ -33,6 +33,11 @@ Format: `[Phase.Task] - Description (Date)`
 - [3.3] - Clip placement & drag-and-drop: drag assets from the Media Bin onto compatible lanes (HTML5 DnD) to create clips; reposition clips in time and move between compatible tracks via mouse drag with edge/playhead snapping (Shift disables snapping) (2026-06-28)
 - [3.4] - Playhead & scrubbing: draggable playhead bound to playback `currentTime`, click-to-seek and drag-to-scrub on the ruler/lanes, current-time indicator in the toolbar (2026-06-28)
 
+### Phase 4: Preview & Viewport
+- [4.1] - `Preview` component in `src/components/Preview/` replaces the single-file `VideoPlayer`: composites the visible clip of every visible track at the playhead onto a canvas; pure `resolveClipAtTime`/`resolveVisibleLayers`/`projectDuration` helpers in `src/core/preview.ts`; rAF playback loop advances `currentTime` and reuses `VideoControls` (2026-06-28)
+- [4.2] - Multi-layer z-order compositing: base tracks drawn first, overlay tracks on top (`orderTracksForDraw`), honoring each clip's `Transform` (position/scale/rotation/opacity); video frames sampled from cached hidden `<video>` elements, images drawn directly (`assetElements.ts`) (2026-06-28)
+- [4.3] - Viewport configuration: `ViewportSelector` presets (1080p, 720p, 9:16, 1:1) call `setViewport`; preview fits the viewport to the available area preserving aspect ratio (`fitToViewport`) with a devicePixelRatio-scaled backing store (2026-06-28)
+
 ---
 
 ## In Progress
@@ -42,11 +47,6 @@ _Nothing currently in progress._
 ---
 
 ## Pending
-
-### Phase 4: Preview & Viewport
-- [ ] 4.1 — Refactor Preview panel (multi-track compositing)
-- [ ] 4.2 — Viewport resize (output dimensions)
-- [ ] 4.3 — Multi-layer compositing on canvas
 
 ### Phase 5: Core Editing Operations
 - [ ] 5.1 — Cut operation (split at playhead)
