@@ -41,10 +41,24 @@ export function isDrawable(el: DrawableElement): boolean {
   return el.complete && el.naturalWidth > 0
 }
 
+/** Intrinsic pixel size of a drawable source, or null when not yet known. */
+function intrinsicSize(el: DrawableElement): { width: number; height: number } | null {
+  if (el instanceof HTMLVideoElement) {
+    return el.videoWidth > 0 && el.videoHeight > 0
+      ? { width: el.videoWidth, height: el.videoHeight }
+      : null
+  }
+  return el.naturalWidth > 0 && el.naturalHeight > 0
+    ? { width: el.naturalWidth, height: el.naturalHeight }
+    : null
+}
+
 /**
  * Draw a single layer into the viewport coordinate space, applying the clip's
- * transform (position, scale, rotation, opacity). Falls back to the full
- * viewport when the transform has no explicit size.
+ * transform (position, scale, rotation, opacity). The source is always fit
+ * inside the transform's box preserving its intrinsic aspect ratio (centered
+ * letterbox/pillarbox) so video and images are never stretched. Falls back to
+ * the full viewport when the transform has no explicit size.
  */
 export function drawLayer(
   ctx: CanvasRenderingContext2D,
@@ -53,16 +67,31 @@ export function drawLayer(
   viewport: Viewport
 ): void {
   if (!isDrawable(el)) return
-  const w = transform.width || viewport.width
-  const h = transform.height || viewport.height
-  const cx = transform.x + w / 2
-  const cy = transform.y + h / 2
+  const boxW = transform.width || viewport.width
+  const boxH = transform.height || viewport.height
+
+  // Fit the source's intrinsic aspect ratio inside the box, centered.
+  const intrinsic = intrinsicSize(el)
+  let dx = transform.x
+  let dy = transform.y
+  let dw = boxW
+  let dh = boxH
+  if (intrinsic) {
+    const scale = Math.min(boxW / intrinsic.width, boxH / intrinsic.height)
+    dw = intrinsic.width * scale
+    dh = intrinsic.height * scale
+    dx = transform.x + (boxW - dw) / 2
+    dy = transform.y + (boxH - dh) / 2
+  }
+
+  const cx = transform.x + boxW / 2
+  const cy = transform.y + boxH / 2
 
   ctx.save()
   ctx.globalAlpha = Math.max(0, Math.min(1, transform.opacity))
   ctx.translate(cx, cy)
   ctx.rotate((transform.rotation * Math.PI) / 180)
   ctx.translate(-cx, -cy)
-  ctx.drawImage(el, transform.x, transform.y, w, h)
+  ctx.drawImage(el, dx, dy, dw, dh)
   ctx.restore()
 }
