@@ -15,7 +15,6 @@ export function createElementForAsset(asset: MediaAsset): DrawableElement | null
     video.muted = true
     video.preload = 'auto'
     video.playsInline = true
-    video.crossOrigin = 'anonymous'
     return video
   }
   if (asset.type === 'image') {

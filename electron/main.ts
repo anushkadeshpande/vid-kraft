@@ -1,6 +1,11 @@
 import { app, BrowserWindow } from 'electron'
 import path from 'node:path'
 import { registerAllHandlers } from './ipc'
+import { registerMediaScheme, registerMediaProtocol } from './protocol'
+
+// Register the privileged media scheme before the app is ready so the
+// renderer can stream local files (file:// is blocked from the dev origin).
+registerMediaScheme()
 
 // The built directory structure
 //
@@ -59,6 +64,7 @@ app.on('activate', () => {
 })
 
 app.whenReady().then(() => {
+  registerMediaProtocol()
   registerAllHandlers()
   createWindow()
 })

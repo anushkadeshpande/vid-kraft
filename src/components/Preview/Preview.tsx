@@ -33,6 +33,7 @@ function Preview() {
 
   const stageRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const poolRef = useRef<HTMLDivElement | null>(null)
   const elements = useRef<Map<Id, DrawableElement>>(new Map())
   const [available, setAvailable] = useState({ width: 0, height: 0 })
 
@@ -90,15 +91,24 @@ function Preview() {
   // Keep the drawable-element cache in sync with the project's assets.
   useEffect(() => {
     const cache = elements.current
+    const pool = poolRef.current
     const ids = new Set(assets.map((a) => a.id))
     for (const asset of assets) {
       if (!cache.has(asset.id)) {
         const el = createElementForAsset(asset)
-        if (el) cache.set(asset.id, el)
+        if (el) {
+          cache.set(asset.id, el)
+          // Video elements must be in the DOM to decode/advance during playback.
+          if (el instanceof HTMLVideoElement && pool) pool.appendChild(el)
+        }
       }
     }
     for (const id of [...cache.keys()]) {
-      if (!ids.has(id)) cache.delete(id)
+      if (!ids.has(id)) {
+        const el = cache.get(id)
+        if (el instanceof HTMLVideoElement) el.remove()
+        cache.delete(id)
+      }
     }
     drawAt(useProjectStore.getState().playback.currentTime)
   }, [assets, drawAt])
@@ -145,9 +155,10 @@ function Preview() {
     }
 
     // Sync and start the videos that are visible at the current time.
+    const cache = elements.current
     const startLayers = resolveVisibleLayers(tracks, useProjectStore.getState().playback.currentTime)
     for (const layer of startLayers) {
-      const el = elements.current.get(layer.clip.assetId)
+      const el = cache.get(layer.clip.assetId)
       if (el instanceof HTMLVideoElement) {
         try {
           el.currentTime = layer.sourceTime
@@ -181,7 +192,7 @@ function Preview() {
 
     return () => {
       cancelAnimationFrame(raf)
-      for (const el of elements.current.values()) {
+      for (const el of cache.values()) {
         if (el instanceof HTMLVideoElement) el.pause()
       }
     }
@@ -207,6 +218,9 @@ function Preview() {
       <div className="preview__stage" ref={stageRef}>
         <canvas ref={canvasRef} className="preview__canvas" />
       </div>
+
+      {/* Hidden pool keeps <video> elements in the DOM so they decode/advance. */}
+      <div className="preview__pool" ref={poolRef} aria-hidden />
 
       <VideoControls
         isPlaying={isPlaying}

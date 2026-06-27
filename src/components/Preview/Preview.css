@@ -6,6 +6,7 @@
   color: #d7dae0;
   overflow: hidden;
   box-sizing: border-box;
+  position: relative;
 }
 
 .preview__toolbar {
@@ -61,4 +62,17 @@
   display: block;
   background: #000;
   box-shadow: 0 0 0 1px #2a2d35;
+}
+
+/* Off-screen pool: keeps <video> elements rendered (not display:none) so the
+   browser decodes and advances frames while they play, without being visible. */
+.preview__pool {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
 }

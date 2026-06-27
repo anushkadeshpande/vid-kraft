@@ -30,9 +30,11 @@ export function formatResolution(asset: Pick<MediaAsset, 'width' | 'height'>): s
   return `${asset.width}×${asset.height}`
 }
 
-/** Convert a local file path to a file:// URL usable in <img src>. */
+/**
+ * Convert a local file path to a `media://` URL usable in <img>/<video> src.
+ * The custom scheme is served by the Electron main process, which is required
+ * because file:// subresources are blocked from the dev http origin.
+ */
 export function toFileUrl(filePath: string): string {
-  const normalized = filePath.replace(/\\/g, '/')
-  const withSlash = normalized.startsWith('/') ? normalized : `/${normalized}`
-  return `file://${encodeURI(withSlash)}`
+  return `media://local/${encodeURIComponent(filePath)}`
 }
