@@ -35,6 +35,17 @@
   gap: 4px;
 }
 
+.timeline__edit {
+  display: flex;
+  gap: 4px;
+  margin-left: 12px;
+}
+
+.timeline__toolbar button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .timeline__toolbar button {
   background: #2a2d35;
   color: #d7dae0;
@@ -204,6 +215,35 @@
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 12px;
+}
+
+.timeline-clip__handle {
+  position: absolute;
+  top: 0;
+  width: 7px;
+  height: 100%;
+  cursor: ew-resize;
+  z-index: 2;
+}
+
+.timeline-clip__handle--start {
+  left: 0;
+  border-left: 2px solid transparent;
+}
+
+.timeline-clip__handle--end {
+  right: 0;
+  border-right: 2px solid transparent;
+}
+
+.timeline-clip:hover .timeline-clip__handle--start,
+.timeline-clip--selected .timeline-clip__handle--start {
+  border-left-color: #9ec2ff;
+}
+
+.timeline-clip:hover .timeline-clip__handle--end,
+.timeline-clip--selected .timeline-clip__handle--end {
+  border-right-color: #9ec2ff;
 }
 
 /* ---------- Track controls (gutter) ---------- */

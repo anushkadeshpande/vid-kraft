@@ -13,6 +13,15 @@ export function registerFileHandlers() {
     return dir
   })
 
+  // Resolve (and lazily create) the directory for rendered media (merge/split)
+  ipcMain.handle('app:getMediaDir', async (): Promise<string> => {
+    const dir = path.join(app.getPath('userData'), 'media')
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true })
+    }
+    return dir
+  })
+
   // Open file dialog for importing media
   ipcMain.handle('file:openDialog', async (_event, options?: {
     title?: string

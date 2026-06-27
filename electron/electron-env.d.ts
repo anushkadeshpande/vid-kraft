@@ -52,6 +52,7 @@ interface Window {
     }
     app: {
       getThumbnailDir: () => Promise<string>
+      getMediaDir: () => Promise<string>
     }
   }
 }

@@ -37,6 +37,14 @@ Format: `[Phase.Task] - Description (Date)`
 - [4.1] - `Preview` component in `src/components/Preview/` replaces the single-file `VideoPlayer`: composites the visible clip of every visible track at the playhead onto a canvas; pure `resolveClipAtTime`/`resolveVisibleLayers`/`projectDuration` helpers in `src/core/preview.ts`; rAF playback loop advances `currentTime` and reuses `VideoControls` (2026-06-28)
 - [4.2] - Multi-layer z-order compositing: base tracks drawn first, overlay tracks on top (`orderTracksForDraw`), honoring each clip's `Transform` (position/scale/rotation/opacity); video frames sampled from cached hidden `<video>` elements, images drawn directly (`assetElements.ts`) (2026-06-28)
 - [4.3] - Viewport configuration: `ViewportSelector` presets (1080p, 720p, 9:16, 1:1) call `setViewport`; preview fits the viewport to the available area preserving aspect ratio (`fitToViewport`) with a devicePixelRatio-scaled backing store (2026-06-28)
+- [4.4] - Local media playback fix: registered a privileged `media://` protocol in the Electron main process (`electron/protocol.ts`) that streams local files with HTTP range support, so preview video frames and Media Bin thumbnails render from the dev http origin (2026-06-28)
+
+### Phase 5: Core Editing Operations
+- [5.1] - Cut at playhead (`src/core/operations/cut.ts`): `splitClip` divides a clip into two adjacent halves sharing the source (adjusted `trimStart`/`trimEnd`); boundary cuts are no-ops; undoable command (2026-06-28)
+- [5.2] - Split audio/video (`src/core/operations/splitAV.ts`): `runSplitAV` demuxes a clip via the FFmpeg `ffmpeg:split` IPC into video-only and audio-only assets placed on separate tracks (creating an audio/video track when missing); undo recombines and removes created tracks/assets (2026-06-28)
+- [5.3] - Merge adjacent clips (`src/core/operations/merge.ts`): `planMerge` validates same-track adjacency, `runMerge` concatenates trimmed segments via the FFmpeg `ffmpeg:concat` IPC into one rendered clip; non-adjacent selections are rejected; undoable (2026-06-28)
+- [5.4] - Trim/resize clip edges (`src/core/operations/trim.ts`): pure `computeTrim` adjusts `startTime`/`duration`/`trimStart`/`trimEnd` clamped to source bounds and a minimum duration; drag clip edge handles in the timeline; undoable (2026-06-28)
+- [5.5] - Delete clips (`src/core/operations/delete.ts`): removes selected clips, undo restores them on their original tracks; operations self-register with the registry and run through `CommandHistory`; toolbar buttons + keyboard shortcuts (S, Del, Ctrl+Z/Y) wired in the timeline (2026-06-28)
 
 ---
 
@@ -47,13 +55,6 @@ _Nothing currently in progress._
 ---
 
 ## Pending
-
-### Phase 5: Core Editing Operations
-- [ ] 5.1 — Cut operation (split at playhead)
-- [ ] 5.2 — Split audio/video streams
-- [ ] 5.3 — Merge adjacent clips
-- [ ] 5.4 — Trim/resize clip edges
-- [ ] 5.5 — Delete clips
 
 ### Phase 6: Audio
 - [ ] 6.1 — Audio track with waveform rendering

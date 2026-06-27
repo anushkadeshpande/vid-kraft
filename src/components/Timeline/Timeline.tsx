@@ -1,9 +1,21 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
 import { useProjectStore } from '../../store/projectStore'
 import type { Clip, Id, TrackType } from '../../core/types'
 import { pixelsToTime, snap, snapClipStart, timeToPixels } from '../../core/timeline'
 import { createClipFromAsset, createTrack, isAssetCompatibleWithTrack } from '../../core/tracks'
+import { commandHistory } from '../../core/commands'
+import {
+  storeEditingContext,
+  createCutCommand,
+  createDeleteCommand,
+  createTrimCommand,
+  computeTrim,
+  runMerge,
+  runSplitAV,
+  type TrimEdge,
+} from '../../core/operations'
+import { concatClips, splitStreams } from '../../services/ffmpeg'
 import TimeRuler from './TimeRuler'
 import TrackLane from './TrackLane'
 import TrackControls from './TrackControls'
@@ -53,6 +65,11 @@ function Timeline() {
   const [pxPerSecond, setPxPerSecond] = useState(DEFAULT_PX_PER_SECOND)
   const [draggingClipId, setDraggingClipId] = useState<Id | null>(null)
   const [dropTargetTrackId, setDropTargetTrackId] = useState<Id | null>(null)
+  // Bumped after each command so undo/redo button state re-renders.
+  const [, setHistoryTick] = useState(0)
+  const bumpHistory = () => setHistoryTick((t) => t + 1)
+
+  const ctx = useMemo(() => storeEditingContext(), [])
 
   const contentRef = useRef<HTMLDivElement | null>(null)
   const laneEls = useRef<Map<Id, HTMLDivElement>>(new Map())
@@ -212,10 +229,150 @@ function Timeline() {
   const zoomBy = (factor: number) =>
     setPxPerSecond((p) => Math.min(MAX_PX_PER_SECOND, Math.max(MIN_PX_PER_SECOND, p * factor)))
 
+  // ----- Editing operations (undoable via command history) -----
+  const handleCut = () => {
+    const id = selectedClipIds[0]
+    if (!id) return
+    commandHistory.execute(createCutCommand(ctx, id, currentTime))
+    bumpHistory()
+  }
+
+  const handleDelete = () => {
+    if (selectedClipIds.length === 0) return
+    commandHistory.execute(createDeleteCommand(ctx, selectedClipIds))
+    setSelectedClips([])
+    bumpHistory()
+  }
+
+  const handleMerge = async () => {
+    if (selectedClipIds.length < 2) return
+    const outputDir = (await window.ipcRenderer.invoke('app:getMediaDir')) as string
+    const cmd = await runMerge(ctx, selectedClipIds, (segments) =>
+      concatClips(segments, outputDir)
+    )
+    if (cmd) {
+      commandHistory.execute(cmd)
+      setSelectedClips([])
+      bumpHistory()
+    }
+  }
+
+  const handleSplitAV = async () => {
+    const id = selectedClipIds[0]
+    if (!id) return
+    const outputDir = (await window.ipcRenderer.invoke('app:getMediaDir')) as string
+    const cmd = await runSplitAV(ctx, id, (input) => splitStreams(input, outputDir))
+    if (cmd) {
+      commandHistory.execute(cmd)
+      bumpHistory()
+    }
+  }
+
+  const handleUndo = () => {
+    commandHistory.undo()
+    bumpHistory()
+  }
+  const handleRedo = () => {
+    commandHistory.redo()
+    bumpHistory()
+  }
+
+  // ----- Trim by dragging a clip edge -----
+  const handleClipTrimMouseDown = (e: MouseEvent, clip: Clip, edge: TrimEdge) => {
+    e.stopPropagation()
+    const track = tracks.find((t) => t.id === clip.trackId)
+    if (!track || track.locked) return
+
+    const startX = e.clientX
+    const sourceDuration = assetsById.get(clip.assetId)?.duration ?? 0
+    const original = {
+      startTime: clip.startTime,
+      duration: clip.duration,
+      trimStart: clip.trimStart,
+      trimEnd: clip.trimEnd,
+    }
+    setDraggingClipId(clip.id)
+    setSelectedClips([clip.id])
+
+    const onMove = (ev: globalThis.MouseEvent) => {
+      const delta = pixelsToTime(ev.clientX - startX, pxPerSecond)
+      const next = computeTrim({ ...clip, ...original }, sourceDuration, edge, delta)
+      updateClip(clip.trackId, clip.id, next)
+    }
+
+    const onUp = (ev: globalThis.MouseEvent) => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      setDraggingClipId(null)
+      const delta = pixelsToTime(ev.clientX - startX, pxPerSecond)
+      // Revert the live preview, then re-apply through the undoable command.
+      updateClip(clip.trackId, clip.id, original)
+      if (Math.abs(delta) > 1e-4) {
+        commandHistory.execute(createTrimCommand(ctx, clip.id, edge, delta))
+        bumpHistory()
+      }
+    }
+
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
+  // ----- Keyboard shortcuts -----
+  useEffect(() => {
+    const onKeyDown = (e: globalThis.KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) handleRedo()
+        else handleUndo()
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault()
+        handleRedo()
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedClipIds.length > 0) {
+          e.preventDefault()
+          handleDelete()
+        }
+      } else if (e.key.toLowerCase() === 's' && !e.ctrlKey && !e.metaKey) {
+        if (selectedClipIds.length > 0) {
+          e.preventDefault()
+          handleCut()
+        }
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClipIds, currentTime])
+
+  const selectionCount = selectedClipIds.length
+
   return (
     <section className="timeline">
       <header className="timeline__toolbar">
         <span className="timeline__time">{formatTime(currentTime)}</span>
+        <div className="timeline__edit" role="group" aria-label="Edit">
+          <button onClick={handleCut} disabled={selectionCount !== 1} title="Cut at playhead (S)">
+            Cut
+          </button>
+          <button onClick={handleSplitAV} disabled={selectionCount !== 1} title="Split audio/video">
+            Split A/V
+          </button>
+          <button onClick={handleMerge} disabled={selectionCount < 2} title="Merge adjacent clips">
+            Merge
+          </button>
+          <button onClick={handleDelete} disabled={selectionCount === 0} title="Delete (Del)">
+            Delete
+          </button>
+          <button onClick={handleUndo} disabled={!commandHistory.canUndo} title="Undo (Ctrl+Z)">
+            Undo
+          </button>
+          <button onClick={handleRedo} disabled={!commandHistory.canRedo} title="Redo (Ctrl+Y)">
+            Redo
+          </button>
+        </div>
         <div className="timeline__spacer" />
         <div className="timeline__add">
           <button onClick={() => handleAddTrack('video')}>+ Video</button>
@@ -270,6 +427,7 @@ function Timeline() {
                     registerLane={registerLane}
                     onDropAsset={handleDropAsset}
                     onClipMouseDown={handleClipMouseDown}
+                    onClipTrimMouseDown={handleClipTrimMouseDown}
                   />
                 ))
               )}

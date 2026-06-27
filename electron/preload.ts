@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('api', {
   // App / OS path helpers
   app: {
     getThumbnailDir: () => ipcRenderer.invoke('app:getThumbnailDir'),
+    getMediaDir: () => ipcRenderer.invoke('app:getMediaDir'),
   },
 })
 

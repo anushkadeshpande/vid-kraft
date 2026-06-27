@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import ffmpeg from 'fluent-ffmpeg'
 import path from 'node:path'
+import fs from 'node:fs'
 
 // Set ffmpeg path from installer
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path
@@ -15,6 +16,21 @@ export interface ProbeResult {
   sampleRate?: number
   channels?: number
   fileSize: number
+}
+
+/** A trimmed source segment to feed into a concat render. */
+export interface ConcatSegment {
+  path: string
+  trimStart: number
+  duration: number
+}
+
+/** Metadata for a file rendered by FFmpeg. */
+export interface RenderedAsset {
+  path: string
+  duration: number
+  width?: number
+  height?: number
 }
 
 /** Register all FFmpeg-related IPC handlers */
@@ -68,5 +84,111 @@ export function registerFfmpegHandlers() {
   ipcMain.handle('ffmpeg:export', async (_event, _options: unknown): Promise<string> => {
     // Will be implemented in Phase 8
     return 'not-implemented'
+  })
+
+  // Concatenate trimmed source segments into one rendered file
+  ipcMain.handle(
+    'ffmpeg:concat',
+    async (_event, segments: ConcatSegment[], outputDir: string): Promise<RenderedAsset> => {
+      if (!segments || segments.length === 0) throw new Error('No segments to concat')
+
+      const stamp = Date.now()
+      const tempFiles: string[] = []
+
+      // 1. Render each trimmed segment to a temp file.
+      for (let i = 0; i < segments.length; i++) {
+        const seg = segments[i]
+        const out = path.join(outputDir, `concat_${stamp}_${i}.mp4`)
+        tempFiles.push(out)
+        await runFfmpeg(
+          ffmpeg(seg.path)
+            .setStartTime(seg.trimStart)
+            .setDuration(seg.duration)
+            .outputOptions(['-preset', 'veryfast'])
+            .output(out)
+        )
+      }
+
+      // 2. Concat the temp files via the concat demuxer.
+      const listFile = path.join(outputDir, `concat_${stamp}.txt`)
+      fs.writeFileSync(
+        listFile,
+        tempFiles.map((f) => `file '${f.replace(/'/g, "'\\''")}'`).join('\n')
+      )
+      const outputPath = path.join(outputDir, `merged_${stamp}.mp4`)
+      await runFfmpeg(
+        ffmpeg(listFile)
+          .inputOptions(['-f', 'concat', '-safe', '0'])
+          .outputOptions(['-c', 'copy'])
+          .output(outputPath)
+      )
+
+      // 3. Clean up temp files.
+      for (const f of [...tempFiles, listFile]) {
+        try {
+          fs.unlinkSync(f)
+        } catch {
+          /* ignore */
+        }
+      }
+
+      return probeRendered(outputPath)
+    }
+  )
+
+  // Demux a source file into separate video-only and audio-only files
+  ipcMain.handle(
+    'ffmpeg:split',
+    async (
+      _event,
+      inputPath: string,
+      outputDir: string
+    ): Promise<{ video: RenderedAsset; audio: RenderedAsset }> => {
+      const stamp = Date.now()
+      const videoPath = path.join(outputDir, `video_${stamp}.mp4`)
+      const audioPath = path.join(outputDir, `audio_${stamp}.m4a`)
+
+      await runFfmpeg(
+        ffmpeg(inputPath).noAudio().outputOptions(['-c:v', 'copy']).output(videoPath)
+      )
+      await runFfmpeg(
+        ffmpeg(inputPath).noVideo().outputOptions(['-c:a', 'copy']).output(audioPath)
+      )
+
+      const [video, audio] = await Promise.all([
+        probeRendered(videoPath),
+        probeRendered(audioPath),
+      ])
+      return { video, audio }
+    }
+  )
+}
+
+/** Run a configured fluent-ffmpeg command to completion. */
+function runFfmpeg(command: ffmpeg.FfmpegCommand): Promise<void> {
+  return new Promise((resolve, reject) => {
+    command
+      .on('end', () => resolve())
+      .on('error', (err) => reject(err.message))
+      .run()
+  })
+}
+
+/** Probe a rendered file for the subset of metadata callers need. */
+function probeRendered(filePath: string): Promise<RenderedAsset> {
+  return new Promise((resolve, reject) => {
+    ffmpeg.ffprobe(filePath, (err, metadata) => {
+      if (err) {
+        reject(err.message)
+        return
+      }
+      const videoStream = metadata.streams.find((s) => s.codec_type === 'video')
+      resolve({
+        path: filePath,
+        duration: metadata.format.duration || 0,
+        width: videoStream?.width,
+        height: videoStream?.height,
+      })
+    })
   })
 }

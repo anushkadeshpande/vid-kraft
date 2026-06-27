@@ -3,6 +3,7 @@ import type { Clip, Id, MediaAsset, Track } from '../../core/types'
 import { pixelsToTime } from '../../core/timeline'
 import { ASSET_DND_MIME } from './dnd'
 import ClipView from './ClipView'
+import type { TrimEdge } from '../../core/operations'
 
 interface TrackLaneProps {
   track: Track
@@ -15,6 +16,7 @@ interface TrackLaneProps {
   registerLane: (trackId: Id, el: HTMLDivElement | null) => void
   onDropAsset: (trackId: Id, assetId: Id, time: number) => void
   onClipMouseDown: (e: MouseEvent, clip: Clip) => void
+  onClipTrimMouseDown: (e: MouseEvent, clip: Clip, edge: TrimEdge) => void
 }
 
 /** One track lane: accepts asset drops and renders the clips it holds. */
@@ -29,6 +31,7 @@ function TrackLane({
   registerLane,
   onDropAsset,
   onClipMouseDown,
+  onClipTrimMouseDown,
 }: TrackLaneProps) {
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     if (track.locked) return
@@ -76,6 +79,7 @@ function TrackLane({
           dragging={draggingClipId === clip.id}
           locked={track.locked}
           onMouseDown={onClipMouseDown}
+          onTrimMouseDown={onClipTrimMouseDown}
         />
       ))}
     </div>
