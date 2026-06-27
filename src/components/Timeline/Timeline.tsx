@@ -317,6 +317,11 @@ function Timeline() {
     window.addEventListener('mouseup', onUp)
   }
 
+  // ----- Per-clip volume (audio/video) -----
+  const handleClipVolumeChange = (clip: Clip, volume: number) => {
+    updateClip(clip.trackId, clip.id, { volume })
+  }
+
   // ----- Keyboard shortcuts -----
   useEffect(() => {
     const onKeyDown = (e: globalThis.KeyboardEvent) => {
@@ -428,6 +433,7 @@ function Timeline() {
                     onDropAsset={handleDropAsset}
                     onClipMouseDown={handleClipMouseDown}
                     onClipTrimMouseDown={handleClipTrimMouseDown}
+                    onClipVolumeChange={handleClipVolumeChange}
                   />
                 ))
               )}

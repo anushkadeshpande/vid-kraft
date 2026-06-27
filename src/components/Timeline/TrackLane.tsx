@@ -17,6 +17,7 @@ interface TrackLaneProps {
   onDropAsset: (trackId: Id, assetId: Id, time: number) => void
   onClipMouseDown: (e: MouseEvent, clip: Clip) => void
   onClipTrimMouseDown: (e: MouseEvent, clip: Clip, edge: TrimEdge) => void
+  onClipVolumeChange: (clip: Clip, volume: number) => void
 }
 
 /** One track lane: accepts asset drops and renders the clips it holds. */
@@ -32,6 +33,7 @@ function TrackLane({
   onDropAsset,
   onClipMouseDown,
   onClipTrimMouseDown,
+  onClipVolumeChange,
 }: TrackLaneProps) {
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     if (track.locked) return
@@ -80,6 +82,7 @@ function TrackLane({
           locked={track.locked}
           onMouseDown={onClipMouseDown}
           onTrimMouseDown={onClipTrimMouseDown}
+          onVolumeChange={onClipVolumeChange}
         />
       ))}
     </div>

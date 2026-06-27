@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import ffmpeg from 'fluent-ffmpeg'
 import path from 'node:path'
 import fs from 'node:fs'
+import os from 'node:os'
 
 // Set ffmpeg path from installer
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path
@@ -160,6 +161,52 @@ export function registerFfmpegHandlers() {
         probeRendered(audioPath),
       ])
       return { video, audio }
+    }
+  )
+
+  // Extract normalized audio peaks (0..1) at a fixed time resolution for waveforms
+  ipcMain.handle(
+    'ffmpeg:peaks',
+    async (_event, filePath: string, samplesPerSecond = 50): Promise<number[]> => {
+      const decodeRate = 8000
+      const tmp = path.join(
+        os.tmpdir(),
+        `peaks_${Date.now()}_${Math.random().toString(36).slice(2)}.raw`
+      )
+      try {
+        await runFfmpeg(
+          ffmpeg(filePath)
+            .noVideo()
+            .audioChannels(1)
+            .audioFrequency(decodeRate)
+            .outputOptions(['-f', 's16le', '-acodec', 'pcm_s16le'])
+            .output(tmp)
+        )
+        const buf = fs.readFileSync(tmp)
+        const sampleCount = Math.floor(buf.length / 2)
+        const samples = new Int16Array(buf.buffer, buf.byteOffset, sampleCount)
+        const windowSize = Math.max(1, Math.round(decodeRate / Math.max(1, samplesPerSecond)))
+        const peaks: number[] = []
+        for (let i = 0; i < samples.length; i += windowSize) {
+          const end = Math.min(samples.length, i + windowSize)
+          let max = 0
+          for (let j = i; j < end; j++) {
+            const v = Math.abs(samples[j])
+            if (v > max) max = v
+          }
+          peaks.push(max / 32768)
+        }
+        return peaks
+      } catch {
+        // No audio stream or decode failure — return an empty waveform.
+        return []
+      } finally {
+        try {
+          fs.unlinkSync(tmp)
+        } catch {
+          /* ignore */
+        }
+      }
     }
   )
 }

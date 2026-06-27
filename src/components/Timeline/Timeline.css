@@ -246,6 +246,43 @@
   border-right-color: #9ec2ff;
 }
 
+/* Waveform fills the clip behind its label/icon. */
+.timeline-clip__waveform {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.timeline-clip__icon,
+.timeline-clip__label {
+  position: relative;
+  z-index: 1;
+}
+
+/* Per-clip volume line: horizontal bar whose height encodes the gain (0..1). */
+.timeline-clip__volume {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  margin-top: -1px;
+  background: #ffd166;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  cursor: ns-resize;
+  z-index: 3;
+}
+
+.timeline-clip__volume:hover {
+  height: 4px;
+  margin-top: -2px;
+}
+
+.timeline-lane--audio .timeline-clip {
+  background: #2f5d50;
+  border-color: #4f8f7c;
+}
+
 /* ---------- Track controls (gutter) ---------- */
 .track-controls {
   height: 56px;

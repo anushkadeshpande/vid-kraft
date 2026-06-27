@@ -93,6 +93,15 @@ Each editing operation is a self-registering module under `src/core/operations/`
 
 The structural ops (cut/trim/delete) are instant and in-memory; the rendered ops (merge/split) do their async FFmpeg work first and then build a synchronous, undoable command referencing the rendered output. Rendered files are written to `userData/media` (resolved via the `app:getMediaDir` IPC handler). The timeline toolbar wires Cut/Split A/V/Merge/Delete/Undo/Redo buttons, clip edges expose drag handles for trimming, and keyboard shortcuts (`S` cut, `Del`/`Backspace` delete, `Ctrl/Cmd+Z` undo, `Ctrl/Cmd+Shift+Z`/`Ctrl+Y` redo) run through the same command history.
 
+### Audio — Waveforms, Mixing & Volume (Phase 6)
+
+Audio is first-class on the timeline:
+
+- **Waveforms** — the `ffmpeg:peaks` IPC decodes a file to mono PCM and downsamples it to normalized peaks; the pure `bucketPeaks`/`slicePeaks` helpers (`src/core/waveform.ts`) re-bucket those peaks to a clip's current pixel width while honoring its trim. `WaveformCanvas` draws them behind each audio/video clip, and `useWaveform` extracts peaks once per asset and caches them, so the waveform rescales on zoom without re-decoding.
+- **Independent placement** — audio assets drop onto audio tracks to create clips independent of any video, reusing the Phase 3 media↔track compatibility registry.
+- **Mixing model** (`src/core/audioMix.ts`) — `buildAudioMixPlan` collects every clip on an unmuted audio track with its per-clip volume (muted and non-audio tracks are excluded); `mixSamples` sums overlapping samples with hard limiting to `[-1, 1]`, and `applyVolume`/`clampVolume` scale a clip's contribution. This is the authoritative contract that Phase 8 export renders with FFmpeg.
+- **Per-clip volume** — each audio/video clip shows a horizontal volume line; dragging it vertically sets `Clip.volume` (0–1) with a live indicator.
+
 ### `components/VideoControls.tsx` — Playback Buttons
 
 A presentational component with two buttons:

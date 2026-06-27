@@ -46,6 +46,12 @@ Format: `[Phase.Task] - Description (Date)`
 - [5.4] - Trim/resize clip edges (`src/core/operations/trim.ts`): pure `computeTrim` adjusts `startTime`/`duration`/`trimStart`/`trimEnd` clamped to source bounds and a minimum duration; drag clip edge handles in the timeline; undoable (2026-06-28)
 - [5.5] - Delete clips (`src/core/operations/delete.ts`): removes selected clips, undo restores them on their original tracks; operations self-register with the registry and run through `CommandHistory`; toolbar buttons + keyboard shortcuts (S, Del, Ctrl+Z/Y) wired in the timeline (2026-06-28)
 
+### Phase 6: Audio
+- [6.1] - Audio waveform rendering: `ffmpeg:peaks` IPC decodes mono PCM and downsamples to normalized peaks; pure `bucketPeaks`/`slicePeaks` (`src/core/waveform.ts`) re-bucket to the clip's pixel width honoring trim; `WaveformCanvas` + `useWaveform` (cached per asset) draw waveforms behind audio/video clips and rescale with zoom (2026-06-28)
+- [6.2] - Independent custom audio placement: audio assets drop onto audio tracks to create clips independent of any video, via the existing media↔track compatibility registry (2026-06-28)
+- [6.3] - Multi-track audio mixing model (`src/core/audioMix.ts`): `buildAudioMixPlan` collects clips from unmuted audio tracks with per-clip volume (muted/non-audio tracks excluded); `mixSamples` sums overlapping samples with hard limiting to [-1, 1] — the contract Phase 8 export renders (2026-06-28)
+- [6.4] - Per-clip volume control: drag the clip's volume line vertically to set gain (0–1) wired to `Clip.volume`, with a live timeline indicator; `applyVolume`/`clampVolume` scale a clip's contribution to the mix (2026-06-28)
+
 ---
 
 ## In Progress
@@ -55,12 +61,6 @@ _Nothing currently in progress._
 ---
 
 ## Pending
-
-### Phase 6: Audio
-- [ ] 6.1 — Audio track with waveform rendering
-- [ ] 6.2 — Add custom audio to timeline
-- [ ] 6.3 — Audio overlap/mixing
-- [ ] 6.4 — Per-clip volume control
 
 ### Phase 7: Overlays & Annotations
 - [ ] 7.1 — Image/video overlay on tracks

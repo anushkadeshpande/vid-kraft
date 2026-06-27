@@ -63,3 +63,11 @@ export async function splitStreams(
 ): Promise<{ video: RenderedAsset; audio: RenderedAsset }> {
   return window.ipcRenderer.invoke('ffmpeg:split', inputPath, outputDir)
 }
+
+/** Extract normalized audio peaks (0..1) for waveform rendering. */
+export async function extractPeaks(
+  filePath: string,
+  samplesPerSecond = 50
+): Promise<number[]> {
+  return window.ipcRenderer.invoke('ffmpeg:peaks', filePath, samplesPerSecond)
+}
