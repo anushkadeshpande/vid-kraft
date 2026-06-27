@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import type { DragEvent } from 'react'
 import type { MediaAsset } from '../../core/types'
+import { ASSET_DND_MIME } from '../Timeline'
 import { formatDuration, formatFileSize, formatResolution, toFileUrl } from './format'
 
 interface AssetCardProps {
@@ -19,10 +21,17 @@ function AssetCard({ asset, selected, onSelect, onRemove }: AssetCardProps) {
   const [thumbFailed, setThumbFailed] = useState(false)
   const hasThumb = !!asset.thumbnailPath && !thumbFailed
 
+  const handleDragStart = (e: DragEvent<HTMLDivElement>) => {
+    e.dataTransfer.setData(ASSET_DND_MIME, asset.id)
+    e.dataTransfer.effectAllowed = 'copy'
+  }
+
   return (
     <div
       className={`asset-card${selected ? ' asset-card--selected' : ''}`}
       onClick={() => onSelect(asset.id)}
+      draggable
+      onDragStart={handleDragStart}
       role="button"
       tabIndex={0}
       title={asset.name}

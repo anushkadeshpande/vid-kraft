@@ -1,7 +1,15 @@
 .app {
   display: flex;
+  flex-direction: column;
   height: 100vh;
   margin: 0;
+  overflow: hidden;
+}
+
+.app__top {
+  flex: 1;
+  display: flex;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -16,6 +24,13 @@
   min-width: 0;
   overflow: auto;
   padding: 20px;
+}
+
+.app__timeline {
+  flex: 0 0 280px;
+  min-height: 0;
+  border-top: 1px solid #2a2d35;
+  overflow: hidden;
 }
 
 h1 {

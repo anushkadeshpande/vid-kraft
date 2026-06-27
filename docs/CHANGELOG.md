@@ -27,6 +27,12 @@ Format: `[Phase.Task] - Description (Date)`
 - [2.2] - Media Bin UI in `src/components/MediaBin/`: asset cards with thumbnail/name/type/duration/resolution, selection, per-asset removal, grid/list toggle; wired into `App.tsx` two-pane layout (2026-06-27)
 - [2.3] - Thumbnail generation: video poster frame via FFmpeg, image self-thumbnail, audio placeholder; stored in OS `userData/thumbnails` (2026-06-27)
 
+### Phase 3: Timeline & Tracks
+- [3.1] - Timeline panel in `src/components/Timeline/`: scrollable time ruler with zoom (pixels-per-second), "nice" tick intervals, fixed track-header gutter; pure time↔pixel + `snap`/`snapClipStart` helpers in `src/core/timeline.ts` (2026-06-28)
+- [3.2] - Track system: video/audio/overlay lanes with mute/lock/visibility controls and add/remove; media↔track compatibility registry and clip/track factories in `src/core/tracks.ts`; locked tracks reject edits (2026-06-28)
+- [3.3] - Clip placement & drag-and-drop: drag assets from the Media Bin onto compatible lanes (HTML5 DnD) to create clips; reposition clips in time and move between compatible tracks via mouse drag with edge/playhead snapping (Shift disables snapping) (2026-06-28)
+- [3.4] - Playhead & scrubbing: draggable playhead bound to playback `currentTime`, click-to-seek and drag-to-scrub on the ruler/lanes, current-time indicator in the toolbar (2026-06-28)
+
 ---
 
 ## In Progress
@@ -36,12 +42,6 @@ _Nothing currently in progress._
 ---
 
 ## Pending
-
-### Phase 3: Timeline & Tracks
-- [ ] 3.1 — Timeline component (ruler, playhead, scroll)
-- [ ] 3.2 — Track system (video, audio, overlay)
-- [ ] 3.3 — Clip placement & drag-and-drop
-- [ ] 3.4 — Playhead & scrubbing
 
 ### Phase 4: Preview & Viewport
 - [ ] 4.1 — Refactor Preview panel (multi-track compositing)

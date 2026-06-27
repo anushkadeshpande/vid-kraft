@@ -49,7 +49,7 @@ dist-electron/     → Compiled Electron JS (main.js, preload.js)
 
 ### `App.tsx` — Root Component
 
-- Two-pane layout: a `MediaBin` sidebar (imported assets) on the left and the `VideoPlayer` preview on the right.
+- Three-region layout: a top row with a `MediaBin` sidebar (imported assets) on the left and the `VideoPlayer` preview on the right, plus a `Timeline` panel docked along the bottom.
 
 ### `components/MediaBin/` — Media Library (Phase 2)
 
@@ -57,6 +57,13 @@ dist-electron/     → Compiled Electron JS (main.js, preload.js)
 - `AssetCard.tsx` renders a single asset; images show their own thumbnail, audio shows a placeholder icon.
 - `format.ts` holds pure helpers (`formatDuration`, `formatFileSize`, `formatResolution`, `toFileUrl`).
 - Import is driven by `src/services/mediaImport.ts` (per-`MediaType` handler registry: classify → probe → thumbnail → build `MediaAsset`, skipping invalid files) and the `useMediaImport` hook, which opens the native dialog and adds assets to the store. Thumbnails are written to `userData/thumbnails` (resolved via the `app:getThumbnailDir` IPC handler).
+- Asset cards are draggable (HTML5 DnD, MIME `application/x-vidkraft-asset`) so they can be dropped onto timeline tracks.
+
+### `components/Timeline/` — Timeline & Tracks (Phase 3)
+
+- `Timeline.tsx` orchestrates a scrollable timeline: a fixed left gutter of `TrackControls` (mute/lock/visibility/remove) aligned with scrollable lanes, a zoomable `TimeRuler`, and a `Playhead`. It owns the pixels-per-second zoom, asset-drop → clip creation, clip drag (reposition + cross-track move) with snapping, and click/drag scrubbing bound to playback `currentTime`.
+- `TrackLane.tsx` accepts asset drops on compatible, unlocked tracks and renders its clips; `ClipView.tsx` positions a clip by `startTime`/`duration`.
+- Pure, unit-tested logic lives in `src/core/timeline.ts` (`timeToPixels`, `pixelsToTime`, `snap`, `snapClipStart`, `rulerTickInterval`) and `src/core/tracks.ts` (media↔track compatibility registry, `createTrack`, `createClipFromAsset`). Locked tracks reject drops and clip moves; Shift disables snapping during a drag.
 
 ### `components/VideoPlayer.tsx` — Core Component
 
